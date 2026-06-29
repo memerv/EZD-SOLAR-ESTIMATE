@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ประเมินขนาดโซลาร์เซลล์ที่เหมาะกับคุณ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --pea-primary: #9b2077; 
+    --pea-light: #fdf2f8; 
+    --pea-border: #fce7f3;
+    --ezd-p: #8b2379; 
+    --ezd-b: #329fe3; 
+    --ezd-g: #81bc41; 
+    --ink: #1f2933;
+    --teal: #0e9f6e;
+  }
+  body {
+    font-family: 'Prompt', sans-serif; 
+    background: #fcf9fb; 
+    color: var(--ink);
+  }
+  .card {
+    background: #fff;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px -12px rgba(155, 32, 119, 0.15); 
+    border-top: 4px solid var(--pea-primary); 
+  }
+  .fade { animation: f .28s ease both; }
+  @keyframes f { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+  
+  .opt { transition: transform .12s, border-color .12s, background .12s, box-shadow .12s; }
+  .opt:hover { transform: translateY(-2px); border-color: var(--pea-primary); background: var(--pea-light); box-shadow: 0 4px 12px rgba(155,32,119,0.08); }
+  .opt:active { transform: scale(.99); }
+  .opt:focus-visible { outline: 3px solid #f9a8d4; outline-offset: 2px; }
+  
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+  @media (prefers-reduced-motion: reduce) { .fade { animation: none } .opt { transition: none } }
+  
+  .logo-text-outline {
+    text-shadow: 
+      3px 3px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 2px 2px 0 #fff,
+      4px 4px 5px rgba(0,0,0,0.05);
+  }
+</style>
+</head>
+<body class="min-h-screen flex items-start sm:items-center justify-center p-4">
+
+<div class="w-full max-w-xl mt-4 sm:mt-0">
+  <div class="flex flex-col items-center text-center mb-6 px-1 fade">
+    <div class="flex flex-col items-center justify-center mb-3 bg-white px-8 py-4 rounded-2xl shadow-sm border border-gray-100">
+      <div class="font-black text-[42px] flex items-center gap-2 tracking-tight leading-none" style="font-family: Arial, Helvetica, sans-serif;">
+          <span style="color: var(--ezd-p);">PEA</span>
+          <span style="color: var(--ezd-b);">Easy</span>
+          <span class="flex items-center gap-1" style="color: var(--ezd-g);">
+              D
+              <span class="inline-flex items-center justify-center w-[20px] h-[20px] rounded-full border-[3px] border-[var(--ezd-g)] text-[12px] ml-0.5 leading-none bg-green-50">🍃</span>
+          </span>
+      </div>
+      <div class="font-bold text-[24px] leading-none flex gap-1 tracking-tighter mt-2" style="font-family: Arial, Helvetica, sans-serif;">
+          <span class="logo-text-outline" style="color: var(--ezd-p);">E</span>
+          <span class="logo-text-outline" style="color: var(--ezd-b);">Z</span>
+          <span class="logo-text-outline" style="color: var(--ezd-g);">D</span>
+      </div>
+    </div>
+    
+    <div>
+      <h1 class="font-bold text-lg leading-tight" style="color: var(--pea-primary);">หาขนาดโซลาร์ที่ใช่กับคุณ</h1>
+      <p class="text-xs text-gray-500 mt-1">ตอบไม่กี่ข้อ ระบบจะค่อยๆ ตัดตัวเลือกจนได้ขนาดที่ติดได้จริง</p>
+    </div>
+  </div>
+
+  <div class="card p-5 sm:p-7 fade" id="app">
+    <div id="progress-wrap" class="mb-5">
+      <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+        <div id="bar" class="h-1.5 rounded-full transition-all duration-500" style="width:8%; background: linear-gradient(90deg, #c42998, #9b2077);"></div>
+      </div>
+      <p id="step-text" class="text-[11px] text-gray-400 mt-2 font-medium">เริ่มต้น</p>
+    </div>
+
+    <h2 id="q-title" class="text-lg font-semibold leading-relaxed mb-1">กำลังโหลด…</h2>
+
+    <details class="mb-4" id="why-box">
+      <summary class="text-xs font-medium inline-flex items-center gap-1 select-none" style="color: var(--pea-primary);">
+        <span>ℹ️ ทำไมต้องถามข้อนี้?</span>
+      </summary>
+      <p id="q-why" class="text-xs text-gray-600 bg-[#fdf2f8] border border-[#fce7f3] rounded-xl p-3 mt-2 leading-relaxed"></p>
+    </details>
+
+    <div id="answers" class="space-y-2.5"></div>
+    <button id="next" class="hidden mt-5 w-full text-white font-semibold py-3 rounded-xl shadow-md" style="background: var(--pea-primary);">ถัดไป ➔</button>
+  </div>
+
+  <p class="text-[11px] text-gray-400 text-center mt-4 px-4 leading-relaxed">
+    เป็นการประเมินเบื้องต้นจากค่าเฉลี่ย ไม่ใช่ใบเสนอราคาหรือคำแนะนำการลงทุน · ขนาดจริงต้องสำรวจหน้างาน
+  </p>
+</div>
+
+<script>
+/* =====================================================================
+   ระบบโหลดข้อมูลเบื้องหลัง (ฝัง CSV ไว้ในโค้ด) [ห้ามแก้โลจิก]
+   ===================================================================== */
+let excelData = [];
+
+const rawCSV = `Period	Pack ID	Package Code 2569	Type	Phase	"Solar panel
+ (brand)"	"Solar panel 
+ (Model)"	"Solar panel 
+ (Wp)"	"Solar panel 
+ (QTY)"	"Q2 Solar panel 
+ Total (Wp)"	"Optimizer
+ (QTY)"	"Inverter 
+brand"	Inverter model	"Inverter 
+(kW)"	"Inverter
+ (QTY)"	"Inverter total 
+(kW)"	"Battery 
+brand"	"Battery 
+model"	"Battery
+ (kWh)"	"Battery
+ (QTY)"	"Battery total
+ (kWh)"	"Q2 (5) 
+ Catalog price (VAT)"	"แผงโซล่าร์ - (ปี)
+ (Product Warranty)"	"แผงโซล่าร์ - (ปี)
+ (Power Warranty)"	"Inverter - (ปี)
+ (Warranty)"	"แบตเตอรี่ - (ปี)
+ (Warranty)"	"การรับประกัน
+การติดตั้ง - (ปี)"	อัคคีภัย - (ปี)	"การบำรุงรักษา 
+ ปี / ครั้ง"	"พื้นที่ติดตั้ง Panel 
+ (ตารางเมตร)"	"ผลประหยัดต่อ 
+เดือน (บาท)"	"ผลประหยัด
+ปี  (บาท)"	ระยะเวลาคืนทุน (ปี)	"Cat.Price
+THB / Wp"	"ต่อ invertor 
+ขนานได้เพิ่มกี่เครื่อง"	"ติดแบตเตอรี่
+เพิ่มได้กี่ก้อน / kwhr"	พื้นที่การให้บริการ / พื้นที่ยกเว้นการให้บริการ	พื้นที่ที่ให้บริการ	หมายเหตุ	หมายเหตุ 2
+เม.ย.-มิ.ย.69	3	SB-PON-JK635--DY1005DN005-0169021	SB	1 Phase	JinKO	JKM635 N-78HL4-BDV	635	8	5,080	-	Deye	SUN-5K-SG04LP1-EU-SM2	5	1	5	Dyness	DL5.0C	5	1	5	215,000	12	30	10	10	2	1	2/4	24	2,700	32,400	6.64	42.32	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	13	SB-PON-JK635--HW3005HW007-0169021	SB	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	8	5,080	-	Huawei	SUN2000-5K-MAP0	5	1	5	Huawei	LUNA2000-7-S1	7	1	7	369,000	12	30	10	10	2	1	2/4	24	2,700	32,400	11.39	72.64	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	14	SB-PON-JK635--HW3010HW007-0169021	SB	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	15	9,525	-	Huawei	SUN2000-10K-MAP0	10	1	10	Huawei	LUNA2000-7-S1	7	1	7	452,000	12	30	10	10	2	1	2/4	45	5,400	64,800	6.98	47.45	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	15	SB-PON-JK635--HW3015HW014-0169021	SB	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	24	15,240	-	Huawei	SUN2000-15K-MB0	15	1	15	Huawei	LUNA2000-7-S1	7	2	14	720,000	12	30	10	10	2	1	2/4	72	8,100	97,200	7.41	47.24	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	16	SB-PON-JK635--HW3020HW021-0169021	SB	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	32	20,320	-	Huawei	SUN2000-20K-MB0	20	1	20	Huawei	LUNA2000-7-S1	7	3	21	800,000	12	30	10	10	2	1	2/4	96	10,800	129,600	6.17	39.37	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	39	SH-PON-JK635--DY1005--000-0169021	SH	1 Phase	JinKO	JKM635 N-78HL4-BDV	635	8	5,080	-	Deye	SUN-5K-SG04LP1-EU-SM2	5	1	5	-	-	-	-	-	162,000	12	30	10	-	2	1	2/4	24	2,700	32,400	5.00	31.89	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	40	SH-PON-JK635--DY1010--000-0169021	SH	1 Phase	JinKO	JKM635 N-78HL4-BDV	635	16	10,160	-	Deye	SUN-10k-SG02LP1-EU-AM3	10	1	10	-	-	-	-	-	289,000	12	30	10	-	2	1	2/4	48	5,400	64,800	4.46	28.44	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	41	SH-PON-JK635--DY3010--000-0169021	SH	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	16	10,160	-	Deye	SUN-10K-SG04LP3-EU	10	1	10	-	-	-	-	-	299,000	12	30	10	-	2	1	2/4	48	5,400	64,800	4.61	29.43	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	42	SH-PON-JK635--DY3015--000-0169021	SH	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	24	15,240	-	Deye	SUN-15K-SG05LP3-EU-SM2	15	1	15	-	-	-	-	-	400,000	12	30	10	-	2	1	2/4	72	8,100	97,200	4.12	26.25	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	43	SH-PON-JK635--DY3020--000-0169021	SH	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	32	20,320	-	Deye	SUN-20K-SG05LP3-EU-SM2	20	1	20	-	-	-	-	-	499,000	12	30	10	-	2	1	2/4	96	10,800	129,600	3.85	24.56	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	44	SH-PON-JK635--DY3030--000-0169021	SH	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	48	30,480	-	Deye	SUN-30K-SG01HP3-EU-BM3	30	1	30	-	-	-	-	-	690,000	12	30	10	-	2	1	2/4	144	16,200	194,400	3.55	22.64	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	45	SH-PON-JK635--DY3040--000-0169021	SH	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	64	40,640	-	Deye	SUN-40K-SG01HP3-EU-BM4	40	1	40	-	-	-	-	-	950,000	12	30	10	-	2	1	2/4	192	22,275	267,300	3.55	23.38	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	46	SH-PON-JK635--DY3050--000-0169021	SH	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	80	50,800	-	Deye	SUN-50K-SG01HP3-EU-BM4	50	1	50	-	-	-	-	-	1,200,000	12	30	10	-	2	1	2/4	240	27,675	332,100	3.61	23.62	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	47	SH-PON-JK635--DY3060--000-0169021	SH	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	96	60,960	-	Deye	SUN-30K-SG01HP3-EU-BM3	30	2	60	-	-	-	-	-	1,450,000	12	30	10	-	2	1	2/4	288	33,075	396,900	3.65	23.79	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	48	SH-PON-JK635--DY3080--000-0169021	SH	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	126	80,010	-	Deye	SUN-40K-SG01HP3-EU-BM4	40	2	80	-	-	-	-	-	1,900,000	12	30	10	-	2	1	2/4	378	43,200	518,400	3.67	23.75	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	49	SH-PON-JK635--DY3100--000-0169021	SH	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	158	100,330	-	Deye	SUN-50K-SG01HP3-EU-BM4	50	2	100	-	-	-	-	-	2,290,000	12	30	10	-	2	1	2/4	474	54,000	648,000	3.53	22.82	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	50	SO-PON-JK635--HW1003--000-0169021	SO	1 Phase	JinKO	JKM635 N-78HL4-BDV	635	5	3,175	-	Huawei	SUN2000-3KTL-L1	3	1	3	-	-	-	-	-	131,000	12	30	10	-	2	1	2/4	15	2,025	24,300	5.39	41.26	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	52	SH-PON-JK635--HW3005--000-0169021	SH	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	8	5,080	-	Huawei	SUN2000-5K-MAP0	5	1	5	-	-	-	-	-	180,000	12	30	10	-	2	1	2/4	24	2,700	32,400	5.56	35.43	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	53	SH-PON-JK635--HW1010--000-0169021	SH	1 Phase	JinKO	JKM635 N-78HL4-BDV	635	15	9,525	-	Huawei	SUN2000-10K-LC0	10	1	10	-	-	-	-	-	269,000	12	30	10	-	2	1	2/4	48	5,400	64,800	4.15	26.48	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	54	SH-PON-JK635--HW3010--000-0169021	SH	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	15	9,525	-	Huawei	SUN2000-10K-MAP0	10	1	10	-	-	-	-	-	279,000	12	30	10	-	2	1	2/4	48	5,400	64,800	4.31	27.46	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	55	SH-PON-JK635--HW3015--000-0169021	SH	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	24	15,240	-	Huawei	SUN2000-15K-MB0	15	1	15	-	-	-	-	-	389,000	12	30	10	-	2	1	2/4	72	8,100	97,200	4.00	25.52	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	56	SH-PON-JK635--HW3020--000-0169021	SH	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	32	20,320	-	Huawei	SUN2000-20K-MB0	20	1	20	-	-	-	-	-	489,000	12	30	10	-	2	1	2/4	96	10,800	129,600	3.77	24.06	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	57	SO-PON-JK635--HW3030--000-0169021	SO	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	48	30,480	-	Huawei	SUN2000-30KTL-M3	30	1	30	-	-	-	-	-	694,000	12	30	10	-	2	1	2/4	144	16,200	194,400	3.57	22.77	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	58	SO-PON-JK635--HW3040--000-0169021	SO	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	64	40,640	-	Huawei	SUN2000-40KTL-M3	40	1	40	-	-	-	-	-	969,000	12	30	10	-	2	1	2/4	192	22,275	267,300	3.63	23.84	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	59	SO-PON-JK635--HW3050--000-0169021	SO	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	80	50,800	-	Huawei	SUN2000-50KTL-M3	50	1	50	-	-	-	-	-	1,248,000	12	30	10	-	2	1	2/4	240	27,675	332,100	3.76	24.57	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	60	SO-PON-JK635--HW3060--000-0169021	SO	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	96	60,960	-	Huawei	SUN2000-30KTL-M3	30	2	60	-	-	-	-	-	1,400,000	12	30	10	-	2	1	2/4	288	33,075	396,900	3.53	22.97	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	61	SO-PON-JK635--HW3080--000-0169021	SO	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	126	80,010	-	Huawei	SUN2000-30KTL-M3 / SUN2000-50KTL-M3	80	1	80	-	-	-	-	-	1,800,000	12	30	10	-	2	1	2/4	378	43,200	518,400	3.47	22.5	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	62	SO-PON-JK635--HW3100--000-0169021	SO	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	158	100,330	-	Huawei	SUN2000-100KTL-M2	100	1	100	-	-	-	-	-	2,100,000	12	30	10	-	2	1	2/4	474	54,000	648,000	3.24	20.93	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	69	SO-PON-JK635--HW3150--000-0169021	SO	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	236	149,860	-	Huawei	SUN2000-150K-MG0	150	1	150	-	-	-	-	-	3,150,000	12	30	10	-	2	1	2/4	708	81,000	972,000	3.24	21.02	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	71	SB-PON-JK635--DY3005DN005-0169021	SB	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	8	5,080	-	Deye	SUN-5K-SG05LP3-EU-SM2	5	1	5	Dyness	DL5.0C	5	1	5	250,000	12	30	10	10	2	1	2/4	24	2,700	32,400	7.72	49.21	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	75	SB-PON-JK635--DY1010DN010-0169021	SB	1 Phase	JinKO	JKM635 N-78HL4-BDV	635	15	9,525	-	Deye	SUN-10k-SG02LP1-EU-AM3	10	1	10	Dyness	Powerbox Pro	10.24	1	10.24	399,000	12	30	10	10	2	1	2/4	45	5,400	64,800	6.16	41.89	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	77	SB-PON-JK635--DY3010DN010-0169021	SB	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	15	9,525	-	Deye	SUN-10K-SG04LP3-EU	10	1	10	Dyness	Powerbox Pro	10.24	1	10.24	409,000	12	30	10	10	2	1	2/4	45	5,400	64,800	6.31	42.94	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	79	SB-PON-JK635--DY3015DN015-0169021	SB	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	24	15,240	-	Deye	SUN-15K-SG05LP3-EU-SM2	15	1	15	Dyness	Powerbrick	15	1	15	520,000	12	30	10	10	2	1	2/4	72	8,100	97,200	5.35	34.12	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	81	SB-PON-JK635--DY3020DN015-0169021	SB	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	32	20,320	-	Deye	SUN-20K-SG05LP3-EU-SM2	20	1	20	Dyness	Powerbrick	15	1	15	630,000	12	30	10	10	2	1	2/4	96	10,800	129,600	4.86	31	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	82	SB-PON-JK635--DY3030DN030-0169021	SB	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	48	30,480	-	Deye	SUN-30K-SG01HP3-EU-BM3	30	1	30	Dyness	STACK100	5.12	6	30.72	1,100,000	12	30	10	10	2	1	2/4	144	16,200	194,400	5.66	36.09	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	83	SB-PON-JK635--DY3040DN045-0169021	SB	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	64	40,640	-	Deye	SUN-40K-SG01HP3-EU-BM4	40	1	40	Dyness	STACK100	5.12	8	40.96	1,490,000	12	30	10	10	2	1	2/4	192	22,275	267,300	5.57	36.66	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	84	SB-PON-JK635--DY3050DN051-0169021	SB	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	80	50,800	-	Deye	SUN-50K-SG01HP3-EU-BM4	50	1	50	Dyness	STACK100	5.12	10	51.2	1,700,000	12	30	10	10	2	1	2/4	240	27,675	332,100	5.12	33.46	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	85	SB-PON-JK635--HW1010HW007-0169021	SB	1 Phase	JinKO	JKM635 N-78HL4-BDV	635	15	9,525	-	Huawei	SUN2000-10K-LC0	10	1	10	Huawei	LUNA2000-7-S1	7	1	7	410,000	12	30	10	10	2	1	2/4	45	5,400	64,800	6.33	43.04	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	584	SB-PON-JK635-SI1010SI010-0169021	SB	1 Phase	JinKO	JKM635 N-78HL4-BDV	635	15	9,525	-	Sigenergy	SigenStor EC 10.0 SP	10	1	10	Sigenergy	SigenStor BAT 10.0	9.04	1	9.04	485,000	12	30	10	10	2	1	2/4	45	5,400	64,800	7.48	50.92	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	585	SB-PON-JK635-SO1008LV005-0169021	SB	1 Phase	JinKO	JKM635 N-78HL4-BDV	635	10	6,350	-	Solis	S6-EH1P(6)K-L-PLUS	6	1	6	LVTOPSUN	LVTS-512100-G3	5	1	5	250,000	12	30	10	7	2	1	2/4	30	3,375	40,500	6.17	39.37	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	586	SB-PON-JK635-SO1008SI010-0169021	SB	1 Phase	JinKO	JKM635 N-78HL4-BDV	635	13	8,255	-	Solis	S6-EH1P(8)K-L-PLUS	8	1	8	LVTOPSUN	LVTS-512200-G3	10	1	10	340,000	12	30	10	7	2	1	2/4	39	4,725	56,700	6.00	41.19	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	587	SB-PON-JK635-SI1005SI010-0169021	SB	1 Phase	JinKO	JKM635 N-78HL4-BDV	635	8	5,080	-	Sigenergy	SigenStor EC 5.0 SP	5	1	5	Sigenergy	SigenStor BAT 10.0	9.04	1	9.04	345,000	12	30	10	10	2	1	2/4	24	2,700	32,400	10.65	67.91	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	590	SB-PON-JK635-SI3010SI010-0169021	SB	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	15	9,525	-	Sigenergy	SigenStor EC 10.0 TP	10	1	10	Sigenergy	SigenStor BAT 10.0	9.04	1	9.04	460,000	12	30	10	10	2	1	2/4	45	5,400	64,800	7.10	48.29	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	591	SB-PON-JK635-SO3015LV015-0169021	SB	3 Phase	JinKO	JKM635 N-78HL4-BDV	635	24	15,240	-	Solis	S6-EH3P15K02-NV-YD-L	15	1	15	LVTOPSUN	LVTS-512300-G3	15	1	15	530,000	12	30	10	7	2	1	2/4	72	8,100	97,200	5.45	34.78	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	592	BB-PON---------DY1005DN005-0169021	BB	1 Phase	-	-	-	-	-	-	Deye	SUN-5K-SG04LP1-EU-SM2	5	1	5	Dyness	DL5.0C	5	1	5	132,000	-	-	10	10	2	1	2/4	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	593	BB-PON---------DY1005DN005-0169021	BB	3 Phase	-	-	-	-	-	-	Deye	SUN-5K-SG05LP3-EU-SM2	5	1	5	Dyness	DL5.0C	5	1	5	180,000	-	-	10	10	2	1	2/4	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	594	BB-PON---------DY1005DN010-0169021	BB	1 Phase	-	-	-	-	-	-	Deye	SUN-10k-SG02LP1-EU-AM3	10	1	10	Dyness	DL5.0C	5	2	10	230,000	-	-	10	10	2	1	2/4	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	595	BB-PON---------DY1005DN010-0169021	BB	1 Phase	-	-	-	-	-	-	Deye	SUN-10k-SG02LP1-EU-AM3	10	1	10	Dyness	Powerbox Pro	10	1	10	230,000	-	-	10	10	2	1	2/4	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	596	BB-PON---------DY3005DN010-0169021	BB	3 Phase	-	-	-	-	-	-	Deye	SUN-10K-SG04LP3-EU	10	1	10	Dyness	DL5.0C	5	2	10	235,000	-	-	10	10	2	1	2/4	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	597	BB-PON---------DY3005DN010-0169021	BB	3 Phase	-	-	-	-	-	-	Deye	SUN-10K-SG04LP3-EU	10	1	10	Dyness	Powerbox Pro	10	1	10	235,000	-	-	10	10	2	1	2/4	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	598	BB-PON---------DY3015DN015-0169021	BB	3 Phase	-	-	-	-	-	-	Deye	SUN-15K-SG05LP3-EU-SM2	15	1	15	Dyness	Powerbrick	15	1	15	290,000	-	-	10	10	2	1	2/4	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	599	BB-PON---------DY3020DN020-0169021	BB	3 Phase	-	-	-	-	-	-	Deye	SUN-20K-SG05LP3-EU-SM2	20	1	20	Dyness	Powerbrick	15	1	15	350,000	-	-	10	10	2	1	2/4	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	600	BB-PON--------------------HW007-0169021	BB	1 Phase	-	-	-	-	-	-	-	-	-	-	-	Huawei	LUNA2000-7-S1	7	1	7	195,000	-	-	10	10	2	1	2/4	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	601	BB-PON--------------------HW007-0169021	BB	3 Phase	-	-	-	-	-	-	-	-	-	-	-	Huawei	LUNA2000-7-S1	7	1	7	205,000	-	-	10	10	2	1	2/4	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	602	BB-PON--------------------HW014-0169021	BB	1 Phase	-	-	-	-	-	-	-	-	-	-	-	Huawei	LUNA2000-7-S1	7	2	14	280,000	-	-	10	10	2	1	2/4	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	603	BB-PON--------------------HW014-0169021	BB	3 Phase	-	-	-	-	-	-	-	-	-	-	-	Huawei	LUNA2000-7-S1	7	2	14	290,000	-	-	10	10	2	1	2/4	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	604	BB-PON--------------------HW021-0169021	BB	1 Phase	-	-	-	-	-	-	-	-	-	-	-	Huawei	LUNA2000-7-S1	7	3	21	380,000	-	-	10	10	2	1	2/4	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	605	BB-PON--------------------HW021-0169021	BB	3 Phase	-	-	-	-	-	-	-	-	-	-	-	Huawei	LUNA2000-7-S1	7	3	21	390,000	-	-	10	10	2	1	2/4	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	675	BB-PON--------------------DN005-0169021	BB	-	-	-	-	-	-	-	-	-	-	-	-	Dyness	DL5.0C	5.12	1	5.12	45,000	-	-	-	10	2	-	-	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	แพ็ก แยกขายต่างหาก	กรณีลูกค้ามีอุปกรณ์อยู่แล้ว และต้องการติดตั้งเพิ่ม
+เม.ย.-มิ.ย.69	676	BB-PON--------------------DN010-0169021	BB	-	-	-	-	-	-	-	-	-	-	-	-	Dyness	Power box Pro	10.24	1	10.24	85,000	-	-	-	10	2	-	-	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	แพ็ก แยกขายต่างหาก	กรณีลูกค้ามีอุปกรณ์อยู่แล้ว และต้องการติดตั้งเพิ่ม
+เม.ย.-มิ.ย.69	677	BB-PON--------------------DN014-0169021	BB	-	-	-	-	-	-	-	-	-	-	-	-	Dyness	Power Brick	14.34	1	14.34	110,000	-	-	-	10	2	-	-	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	แพ็ก แยกขายต่างหาก	กรณีลูกค้ามีอุปกรณ์อยู่แล้ว และต้องการติดตั้งเพิ่ม
+เม.ย.-มิ.ย.69	678	BB-PON--------------------DN050-0169021	BB	-	-	-	-	-	-	-	-	-	-	-	-	Dyness	STACK100	5.12	1	5.12	51,000	-	-	-	10	2	-	-	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	แพ็ก แยกขายต่างหาก	กรณีลูกค้ามีอุปกรณ์อยู่แล้ว และต้องการติดตั้งเพิ่ม
+เม.ย.-มิ.ย.69	679	BB-PON--------------------DN021-0169021	BB	-	-	-	-	-	-	-	-	-	-	-	-	Dyness	HV STACK100 - SBDU (BMS)	-	1	-	50,000	-	-	-	10	2	-	-	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	แพ็ก แยกขายต่างหาก	กรณีลูกค้ามีอุปกรณ์อยู่แล้ว และต้องการติดตั้งเพิ่ม
+เม.ย.-มิ.ย.69	680	BB-PON--------------------HW007-0169021	BB	-	-	-	-	-	-	-	-	-	-	-	-	HUAWEI	LUNA-2000-7-S1	7	1	7	100,000	-	-	-	10	2	-	-	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	แพ็ก แยกขายต่างหาก	กรณีลูกค้ามีอุปกรณ์อยู่แล้ว และต้องการติดตั้งเพิ่ม
+เม.ย.-มิ.ย.69	681	BB-PON--------------------HW000-0169021	BB	-	-	-	-	-	-	-	-	-	-	-	-	HUAWEI	Power Module	-	1	-	50,000	-	-	-	10	2	-	-	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	แพ็ก แยกขายต่างหาก	กรณีลูกค้ามีอุปกรณ์อยู่แล้ว และต้องการติดตั้งเพิ่ม
+เม.ย.-มิ.ย.69	682	BB-PON--------------------HW000-0169021	BB	1 Phase	-	-	-	-	-	-	-	-	-	-	-	HUAWEI	SmartGuard-63A-S0 (1 Phase)	-	1	-	35,000	-	-	-	10	2	-	-	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	แพ็ก แยกขายต่างหาก	กรณีลูกค้ามีอุปกรณ์อยู่แล้ว และต้องการติดตั้งเพิ่ม
+\เม.ย.-มิ.ย.69	683	BB-PON--------------------HW000-0169021	BB	3 Phase	-	-	-	-	-	-	-	-	-	-	-	HUAWEI	SmartGuard-63A-T0 (3 Phase)	-	1	-	44,000	-	-	-	10	2	-	-	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	แพ็ก แยกขายต่างหาก	กรณีลูกค้ามีอุปกรณ์อยู่แล้ว และต้องการติดตั้งเพิ่ม
+เม.ย.-มิ.ย.69	684	BB-PON--------------------LV005-0169021	BB	-	-	-	-	-	-	-	-	-	-	-	-	LVTOPSUN	LVTS-512100-G3	5	1	5	49,000	-	-	-	7	2	-	-	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	แพ็ก แยกขายต่างหาก	กรณีลูกค้ามีอุปกรณ์อยู่แล้ว และต้องการติดตั้งเพิ่ม
+เม.ย.-มิ.ย.69	685	BB-PON--------------------LV010-0169021	BB	-	-	-	-	-	-	-	-	-	-	-	-	LVTOPSUN	LVTS-512200-G3	10	1	10	89,000	-	-	-	7	2	-	-	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	แพ็ก แยกขายต่างหาก	กรณีลูกค้ามีอุปกรณ์อยู่แล้ว และต้องการติดตั้งเพิ่ม
+เม.ย.-มิ.ย.69	686	BB-PON--------------------LV015-0169021	BB	-	-	-	-	-	-	-	-	-	-	-	-	LVTOPSUN	LVTS-512300-G3	15	1	15	110,000	-	-	-	7	2	-	-	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	แพ็ก แยกขายต่างหาก	กรณีลูกค้ามีอุปกรณ์อยู่แล้ว และต้องการติดตั้งเพิ่ม
+เม.ย.-มิ.ย.69	688	BB-PON--------------------SI010-0169021	BB	-	-	-	-	-	-	-	-	-	-	-	-	Sigenergy	SigenStor BAT 10.0	10	1	10	123,000	-	-	-	10	2	-	-	-	-	-	-	-	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	แพ็ก แยกขายต่างหาก มีแต่ BAT ไม่มี Gateway	กรณีลูกค้ามีอุปกรณ์อยู่แล้ว และต้องการติดตั้งเพิ่ม
+เม.ย.-มิ.ย.69	704	SB-PON-JK635--HW1005HW007-0169021	SB	1 Phase	JinKO	JKM635 N-78HL4-BDV	635	8	5,080	-	Huawei	SUN2000-5K-LB0	5	1	5	Huawei	LUNA2000-7-S1	7	1	7	329,000	12	30	10	10	2	1	2/4	24	2,700	32,400	10.15	64.76	-	-	จ.ปัตตานี จ.ยะลา จ.นราธิวาส และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+เม.ย.-มิ.ย.69	728	SO-PON-JK635--HW1005--000-0169021	SH	1 Phase	JinKO	JKM635 N-78HL4-BDV	635	8	5,080	-	Huawei	SUN2000-5KTL-LB0	5	1	5	-	-	-	-	-	157,000	12	30	10	-	2	1	2/4	24	2,700	32,400	4.85	30.91	-	-	สามจังหวัดชายแดนใต้ และอ.จะนะ จ.สงขลา	-	บริการหลังการขาย ตรวจเชคระบบต่างๆให้ 2 ปี - ล้างแผง 4 ครั้ง (2ครั้ง / ปี)	ให้เช็คของก่อน Confirm Order ลูกค้า
+`;
+
+function getVal(row, ...searchStrs) {
+   for(let searchStr of searchStrs) {
+       const cleanSearch = searchStr.toLowerCase().replace(/\s+/g, '');
+       for(let k in row) {
+           const cleanKey = k.toLowerCase().replace(/\s+/g, '');
+           if(cleanKey === cleanSearch) return row[k];
+       }
+       for(let k in row) {
+           const cleanKey = k.toLowerCase().replace(/\s+/g, '');
+           if(cleanKey.includes(cleanSearch)) return row[k];
+       }
+   }
+   return "-";
+}
+
+function parseNum(val) {
+    if (val === undefined || val === null || val === '' || val === '-') return NaN;
+    return parseFloat(val.toString().replace(/,/g, ''));
+}
+
+Papa.parse(rawCSV, {
+    header: true,
+    skipEmptyLines: true,
+    complete: function(results) {
+        excelData = results.data;
+    }
+});
+
+function renderPkgCard(pkg, title, hexColor) {
+  if(!pkg) return '';
+  
+  const id = getVal(pkg, 'packid', 'packagecode');
+  const inv = getVal(pkg, 'inverterbrand', 'inverter');
+  const panel = getVal(pkg, 'solarpanel(brand)', 'แผง');
+  const bat = getVal(pkg, 'batterybrand', 'battery');
+  
+  const panelWp = getVal(pkg, 'solarpanel(wp)');
+  const panelQty = getVal(pkg, 'solarpanel(qty)');
+  const panelTotalWp = getVal(pkg, 'q2solarpaneltotal(wp)', 'totalwp', 'total');
+  const invKw = getVal(pkg, 'inverter(kw)');
+  const batKwh = getVal(pkg, 'battery(kwh)');
+  const areaSqM = getVal(pkg, 'พื้นที่ติดตั้งpanel(ตารางเมตร)', 'พื้นที่ติดตั้ง');
+  
+  const priceRaw = getVal(pkg, 'catalogprice(vat)', 'proprice', 'price');
+  const pNum = parseNum(priceRaw);
+  const price = !isNaN(pNum) ? pNum.toLocaleString() : (priceRaw !== '-' ? priceRaw : 'สอบถามราคา');
+  
+  const saveRaw = getVal(pkg, 'ผลประหยัดต่อเดือน');
+  const sNum = parseNum(saveRaw);
+  const save = !isNaN(sNum) ? sNum.toLocaleString() : (saveRaw !== '-' ? saveRaw : '-');
+  
+  const paybackRaw = getVal(pkg, 'ระยะเวลาคืนทุน');
+  const pbNum = parseNum(paybackRaw);
+  const payback = !isNaN(pbNum) ? pbNum.toFixed(1) : (paybackRaw !== '-' ? paybackRaw : '-');
+  
+  const kwRaw = getVal(pkg, 'inverter(kw)');
+  const kwNum = parseNum(kwRaw);
+  const kw = !isNaN(kwNum) ? kwNum : kwRaw;
+
+  return `
+    <div class="rounded-2xl p-4 bg-white shadow-sm relative overflow-hidden mt-3" style="border: 2px solid ${hexColor}">
+      <div class="absolute top-0 right-0 text-white text-[11px] font-bold px-3 py-1 rounded-bl-xl" style="background-color: ${hexColor}">${title}</div>
+      <div class="flex items-center justify-between mb-3 mt-1">
+        <div>
+           <span class="text-[11px] font-semibold text-gray-400">รหัสแพ็กเกจ: ${id}</span>
+           <h3 class="text-xl font-extrabold text-gray-800 leading-none mt-1">${kw} kW</h3>
+        </div>
+        <div class="text-right">
+           <div class="text-[10px] text-gray-500 mb-0.5">ราคาประเมิน (บาท)</div>
+           <div class="text-lg font-black" style="color: ${hexColor}">${price}</div>
+        </div>
+      </div>
+      
+      <div class="bg-gray-50 rounded-xl p-3 text-[12px] grid grid-cols-2 gap-2 mb-3 border border-gray-100">
+         <div><span class="text-gray-400 text-[10px] block uppercase tracking-wide mb-0.5">แผงโซลาร์เซลล์</span>
+             <span class="font-bold text-gray-700 text-[13px]">${panelTotalWp} W</span>
+             <div class="text-[10px] text-gray-500 mt-0.5">${panelQty} แผง (${panelWp}W) - ${panel}</div>
+         </div>
+         <div><span class="text-gray-400 text-[10px] block uppercase tracking-wide mb-0.5">อินเวอร์เตอร์</span>
+             <span class="font-bold text-gray-700 text-[13px]">${invKw} kW</span>
+             <div class="text-[10px] text-gray-500 mt-0.5">${inv}</div>
+         </div>
+         <div><span class="text-gray-400 text-[10px] block uppercase tracking-wide mb-0.5">พื้นที่หลังคาที่ใช้</span>
+             <span class="font-bold text-gray-700 text-[13px]">${areaSqM} ตร.ม.</span>
+         </div>
+         ${(batKwh && batKwh !== '-' && batKwh !== '') ? `<div><span class="text-gray-400 text-[10px] block uppercase tracking-wide mb-0.5">แบตเตอรี่</span>
+             <span class="font-bold text-gray-700 text-[13px]">${batKwh} kWh</span>
+             <div class="text-[10px] text-gray-500 mt-0.5">${bat}</div>
+         </div>` : '<div></div>'}
+      </div>
+
+      <div class="flex items-center justify-between px-3 py-2 rounded-xl text-[13px] font-semibold" style="background-color: #f8fafc; border: 1px solid #f1f5f9; color: ${hexColor}">
+         <div class="flex items-center gap-1"><span>⚡</span> ประหยัด ~${save} บ./ด.</div>
+         <div>คืนทุน ~${payback} ปี</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderSmallPkgCard(pkg) {
+  const kwRaw = getVal(pkg, 'inverter(kw)');
+  const kwNum = parseNum(kwRaw);
+  const kw = !isNaN(kwNum) ? kwNum : kwRaw;
+
+  const id = getVal(pkg, 'packid', 'packagecode');
+  const type = getVal(pkg, 'type');
+  const inv = getVal(pkg, 'inverterbrand');
+  
+  const panelQty = getVal(pkg, 'solarpanel(qty)');
+  const areaSqM = getVal(pkg, 'พื้นที่ติดตั้งpanel(ตารางเมตร)', 'พื้นที่ติดตั้ง');
+  
+  const priceRaw = getVal(pkg, 'catalogprice(vat)', 'proprice', 'price');
+  const pNum = parseNum(priceRaw);
+  const price = !isNaN(pNum) ? pNum.toLocaleString() : priceRaw;
+
+  const saveRaw = getVal(pkg, 'ผลประหยัดต่อเดือน');
+  const sNum = parseNum(saveRaw);
+  const save = !isNaN(sNum) ? sNum.toLocaleString() : (saveRaw !== '-' ? saveRaw : '-');
+  
+  const paybackRaw = getVal(pkg, 'ระยะเวลาคืนทุน');
+  const pbNum = parseNum(paybackRaw);
+  const payback = !isNaN(pbNum) ? pbNum.toFixed(1) : (paybackRaw !== '-' ? paybackRaw : '-');
+
+  const isBat = (type.toUpperCase() === 'SB' || type.toUpperCase() === 'SH' || type.toUpperCase() === 'BB');
+  
+  return `
+    <div class="bg-white border border-gray-200 p-3 rounded-xl flex flex-col transition-colors hover:border-[#9b2077]">
+        <div class="flex justify-between items-start">
+            <div>
+                <div class="text-[10px] text-gray-400 font-mono leading-none">${id}</div>
+                <div class="font-bold text-gray-800 text-sm flex items-center gap-2 mt-1">
+                    ${kw} kW 
+                    <span class="text-[10px] px-2 py-0.5 rounded-full ${isBat ? 'bg-teal-100 text-teal-700' : 'bg-gray-100 text-gray-600'}">${type}</span>
+                </div>
+                <div class="text-[11px] text-gray-500 mt-0.5">Inverter: ${inv} | ใช้พื้นที่: ${areaSqM} ตร.ม. | ${panelQty} แผง</div>
+            </div>
+            <div class="text-right">
+                <div class="text-[10px] text-gray-500 mb-0.5">ราคาประเมิน</div>
+                <div class="font-bold" style="color: var(--pea-primary);">${price} ฿</div>
+            </div>
+        </div>
+        <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-100 text-[11px] text-gray-600">
+            <div class="flex items-center gap-1 font-medium"><span>⚡</span> ประหยัด ~${save} บ./ด.</div>
+            <div class="font-medium">คืนทุน ~${payback} ปี</div>
+        </div>
+    </div>
+  `;
+}
+
+const C = { TARIFF:4.5, YIELD_DAY:4.0, DAYS:30, AREA_PER_KWP:7, EXPORT:2.2 };
+const YIELD_MONTH = C.YIELD_DAY * C.DAYS; 
+
+const SEG = {
+  home:    {label:'🏠 บ้าน / ทาวน์โฮม / ที่พักอาศัย', biz:false, bill:[['น้อย — ต่ำกว่า 2,000 บ./เดือน',1500],['ปานกลาง — 2,000–5,000 บ.',3500],['มาก — เกิน 5,000 บ.',8000]], roof:[['เล็ก — วางรถได้ ~1–2 คัน',25],['ปานกลาง — วางรถ ~3–4 คัน (หรือไม่แน่ใจ)',55],['ใหญ่ — วางรถ ~5–8 คัน / ดาดฟ้ากว้าง',100]]},
+  shop:    {label:'🏪 ร้านเล็ก / คาเฟ่ / ตึกแถว', biz:true, bill:[['ต่ำกว่า 5,000 บ./เดือน',3500],['5,000–15,000 บ.',9000],['เกิน 15,000 บ.',22000]], roof:[['1 คูหา (~50 ตร.ม.)',50],['2–3 คูหา (~120 ตร.ม., หรือไม่แน่ใจ)',120],['หลายคูหา (~300 ตร.ม.)',300]]},
+  office:  {label:'🏢 ออฟฟิศ / อาคารพาณิชย์ / ร้านขนาดกลาง', biz:true, bill:[['ต่ำกว่า 15,000 บ./เดือน',9000],['15,000–50,000 บ.',30000],['เกิน 50,000 บ.',80000]], roof:[['ราวสนามแบดมินตัน (~120 ตร.ม.)',120],['ราวสนามเทนนิส (~300 ตร.ม., หรือไม่แน่ใจ)',300],['ราวสนามบาส (~700 ตร.ม.)',700]]},
+  bigcom:  {label:'🏬 กิจการใหญ่ / โรงแรม / ห้าง / โชว์รูม', biz:true, bill:[['ต่ำกว่า 100,000 บ./เดือน',60000],['100,000–300,000 บ.',180000],['เกิน 300,000 บ.',450000]], roof:[['~800 ตร.ม. (≈สนามฟุตซอล 2 สนาม)',800],['~2,000 ตร.ม. (หรือไม่แน่ใจ)',2000],['~5,000 ตร.ม. (≈ครึ่งสนามฟุตบอล)',5000]]},
+  hospital:{label:'🏥 โรงพยาบาล / คลินิกใหญ่ (ใช้ไฟ 24 ชม.)', biz:true, bill:[['ต่ำกว่า 100,000 บ./เดือน (รพ.ชุมชน/คลินิก)',60000],['100,000–500,000 บ.',250000],['เกิน 500,000 บ. (รพ.ใหญ่)',800000]], roof:[['คลินิก/รพ.ชุมชน — ดาดฟ้า+โรงจอดรถ ~800 ตร.ม.',800],['รพ.ทั่วไป ~2,500 ตร.ม. (หรือไม่แน่ใจ)',2500],['รพ.ศูนย์/เอกชนใหญ่ ~6,000 ตร.ม.',6000]]},
+  school:  {label:'🏫 โรงเรียน / มหาวิทยาลัย / สถานศึกษา', biz:true, bill:[['ต่ำกว่า 30,000 บ./เดือน',18000],['30,000–150,000 บ.',80000],['เกิน 150,000 บ.',250000]], roof:[['ประถม/ชุมชน — หลายอาคาร ~1,000 ตร.ม.',1000],['มัธยม ~3,000 ตร.ม. (หรือไม่แน่ใจ)',3000],['มหาวิทยาลัย/วิทยาเขต ~8,000 ตร.ม.',8000]]},
+  gov:     {label:'🏛️ หน่วยงานรัฐ / มูลนิธิ / วัด / องค์กรไม่แสวงกำไร', biz:true, bill:[['ต่ำกว่า 15,000 บ./เดือน',9000],['15,000–80,000 บ.',40000],['เกิน 80,000 บ.',150000]], roof:[['สำนักงาน/มูลนิธิเล็ก/ศาลาวัด ~300 ตร.ม.',300],['อาคารราชการ/วัดกลาง ~1,000 ตร.ม. (หรือไม่แน่ใจ)',1000],['ศูนย์ราชการ/วัดใหญ่ ~3,000 ตร.ม.',3000]]},
+  agri:    {label:'🌾 ฟาร์ม / กลุ่มเกษตร / โรงเรือน (สูบน้ำ/แปรรูป)', biz:true, apk:10, bill:[['ต่ำกว่า 10,000 บ./เดือน',6000],['10,000–80,000 บ.',35000],['เกิน 80,000 บ.',150000]], roof:[['โรงเรือน/โรงเก็บ หรือที่ดิน ~1 งาน (~400 ตร.ม.)',400],['ฟาร์ม/ที่ดิน ~1 ไร่ (~1,600 ตร.ม., หรือไม่แน่ใจ)',1600],['ที่ดินหลายไร่ (~5,000 ตร.ม.ขึ้นไป)',5000]]},
+  factS:   {label:'🏭 โรงงาน / โกดัง ขนาดเล็ก–กลาง', biz:true, bill:[['ต่ำกว่า 100,000 บ./เดือน',60000],['100,000–500,000 บ.',250000],['เกิน 500,000 บ.',800000]], roof:[['~1,000 ตร.ม.',1000],['~3,000 ตร.ม. (หรือไม่แน่ใจ)',3000],['~8,000 ตร.ม. (≈1 สนามฟุตบอล)',8000]]},
+  factL:   {label:'🏭 โรงงานใหญ่ / ใช้ไฟหนักมาก (ไฟแรงสูง)', biz:true, bill:[['500,000–2 ล้านบ./เดือน',1200000],['2–5 ล้านบ.',3200000],['เกิน 5 ล้านบ.',7000000]], roof:[['~5,000 ตร.ม.',5000],['~15,000 ตร.ม. (หรือไม่แน่ใจ)',15000],['~40,000 ตร.ม. ขึ้นไป',40000]]}
+};
+
+const A = {seg:'',bill:0,roof:0,obstacle:0.6,daytime:0.35,backup:false,weekend:null,phase:'auto',meter:'auto'};
+const isBiz = () => A.seg && SEG[A.seg].biz;
+const apk   = () => (A.seg && SEG[A.seg].apk) ? SEG[A.seg].apk : C.AREA_PER_KWP;
+
+const ORDER = ['segment','demand','roof','obstacle','daytime','backup','weekend','phase','meter'];
+const WEEKEND_ASK = ['office','school','gov','factS','factL']; 
+const PHASE_SKIP  = ['bigcom','hospital','school','factS','factL']; 
+const SKIP = { weekend: () => !WEEKEND_ASK.includes(A.seg), phase: () => PHASE_SKIP.includes(A.seg) };
+const visList = () => ORDER.filter(x=>!(SKIP[x]&&SKIP[x]()));
+
+function build(id){
+  switch(id){
+  case 'segment': return {
+    type:'choice', key:'seg', title:'คุณอยู่ในกลุ่มไหน?',
+    why:'ข้อแรกใช้ "ตีกรอบขนาด" ของคุณ เพราะแต่ละกลุ่มมีขนาดหลังคาและการใช้ไฟต่างกันมาก เราจึงเตรียมช่วงค่าไฟและขนาดพื้นที่ที่ตรงกับแต่ละกลุ่มไว้ และตัดตัวเลือกที่ไม่เกี่ยวออกตั้งแต่ต้น',
+    options:Object.keys(SEG).map(k=>({t:SEG[k].label, v:k}))
+  };
+  case 'demand': return {
+    type:'demand', key:'bill', title:'ค่าไฟเฉลี่ยต่อเดือน ประมาณกี่บาท?',
+    why:'ค่าไฟบอกปริมาณการใช้ไฟ (หน่วย/เดือน) ซึ่งเป็นตัวตั้งต้นว่าควรติดโซลาร์ใหญ่แค่ไหน',
+    ranges:SEG[A.seg].bill
+  };
+  case 'roof': return {
+    type:'choice', key:'roof', title:'พื้นที่หลังคา/ดาดฟ้า/ที่ดิน สำหรับติดตั้ง ประมาณไหน?',
+    why:'พื้นที่คือ "เพดาน" ที่จำกัดขนาดโซลาร์ เพราะติดบนหลังคาใช้ ~7 ตร.ม./kWp ถ้าพื้นที่น้อย ต่อให้ค่าไฟแพงก็ติดได้แค่เท่าที่พื้นที่ไหว',
+    options:SEG[A.seg].roof.map(r=>({t:r[0], v:r[1]}))
+  };
+  case 'obstacle': return {
+    type:'choice', key:'obstacle', title:'บนพื้นที่ติดตั้งมีสิ่งกีดขวาง/เงาบัง มากไหม?',
+    why:'แท็งก์น้ำ คอยล์แอร์ เงาต้นไม้ ทำให้พื้นที่ "ใช้ได้จริง" น้อยลง เราจึงคูณสัดส่วนพื้นที่ใช้ได้',
+    options:[['โล่ง หันรับแดดดี (ใช้ได้เกือบเต็ม)',0.8],['มีบ้าง / หรือไม่แน่ใจ',0.6],['เยอะ / หลายทิศ / มีเงาบัง',0.35]].map(o=>({t:o[0],v:o[1]}))
+  };
+  case 'daytime': {
+    const why='โซลาร์ผลิตไฟ "เฉพาะกลางวัน" สัดส่วนนี้คือหัวใจว่าควรติดเท่าไร และต้องมีแบตไหม',
+      opt = isBiz()
+      ? [['ใช้ไฟหนักกลางวัน (เปิดทำการ/เครื่องจักร/สูบน้ำ ช่วงกลางวัน)',0.65],['ปานกลาง (เปิดถึงค่ำด้วย)',0.45],['หนักตอนกลางคืน/24 ชม. (กลางวันใช้น้อย)',0.2]]
+      : [['มีคนอยู่บ้าน+เปิดแอร์ เกือบทั้งวัน',0.55],['อยู่บ้างบางช่วง / แอร์ 1–2 ตัว',0.35],['กลางวันแทบไม่มีใครอยู่',0.15]];
+    return {type:'choice', key:'daytime', why,
+      title: isBiz()?'ช่วงกลางวัน (8 โมง–5 โมงเย็น) ใช้ไฟหนักแค่ไหน?':'ช่วงกลางวัน (8 โมง–5 โมงเย็น) ใช้ไฟแค่ไหน?',
+      options:opt.map(o=>({t:o[0],v:o[1]}))};
+  }
+  case 'backup': return {
+    type:'choice', key:'backup', title:'อยากมี "ไฟสำรองตอนไฟดับ" ด้วยไหม?',
+    why:'ระบบออนกริดล้วนจะ "ดับตามการไฟฟ้า" เมื่อไฟดับ ถ้าต้องการให้ไฟยังใช้ได้ตอนไฟดับ ต้องเป็นระบบไฮบริดที่มีแบตเตอรี่',
+    options:[{t:'ไม่จำเป็น — เน้นลดค่าไฟให้คุ้มสุด',v:false},{t:'อยากมีไฟสำรองตอนไฟดับ (ไฮบริด+แบต)',v:true}]
+  };
+  case 'weekend': return {
+    type:'choice', key:'weekend', title:'ปิด/ไม่มีคนใช้ไฟ วันเสาร์–อาทิตย์ (หรือวันหยุดยาว) ไหม?',
+    why:'ถ้าปิดวันหยุด ไฟที่ผลิตวันหยุดจะไม่มีคนใช้ ตามกฎต้องมีอุปกรณ์ "กันไฟย้อน (Zero Export)" หรือพิจารณาเสริมแบต',
+    options:[{t:'เปิด/มีคนใช้ไฟทุกวัน',v:false},{t:'ปิดเสาร์–อาทิตย์/วันหยุด',v:true}]
+  };
+  case 'phase': return {
+    type:'choice', key:'phase', title:'ระบบไฟของคุณเป็นแบบไหน?',
+    why:'เป็นเพดานทางกฎหมาย: มิเตอร์ 1 เฟส ขออนุญาตติดออนกริดได้ไม่เกิน 5 kW, 3 เฟส (บ้าน) ไม่เกิน 10 kW',
+    options:[{t:'⚡ 1 เฟส (สายเข้า 2 เส้น)',v:'1'},{t:'⚡⚡ 3 เฟส (สายเข้า 4 เส้น)',v:'3'},{t:'🤷 ไม่แน่ใจ → เดาจากค่าไฟ',v:'auto'}]
+  };
+  case 'meter': return {
+    type:'choice', key:'meter', title:'ใช้มิเตอร์แบบ TOU (กลางคืนถูกกว่า) อยู่ไหม?',
+    why:'มิเตอร์ TOU ค่าไฟกลางวันแพงกว่ากลางคืน โซลาร์จึงคุ้มกว่า และการเสริมแบตเพื่อย้ายไฟไปใช้ช่วงค่ำจะคุ้มขึ้น',
+    options:[{t:'ใช่ — มิเตอร์ดิจิทัล TOU',v:'tou'},{t:'ไม่ใช่ — จานหมุนปกติ',v:'normal'},{t:'🤷 ไม่แน่ใจ',v:'auto'}]
+  };
+  }
+}
+
+let cur='segment';
+function nextId(from){
+  let i=ORDER.indexOf(from)+1;
+  while(i<ORDER.length){const id=ORDER[i]; if(!(SKIP[id]&&SKIP[id]()))return id; i++;}
+  return null;
+}
+
+function choiceBtn(o,key,id){
+  const b=document.createElement('button');
+  b.className='opt w-full text-left bg-white border-2 border-gray-200 rounded-2xl py-3.5 px-4 text-[15px] leading-snug';
+  b.innerHTML=o.t;
+  b.onclick=()=>{A[key]=o.v;go(nextId(id));};
+  return b;
+}
+
+function render(id){
+  cur=id;
+  const q=build(id);
+  const app=document.getElementById('app');
+  app.classList.remove('fade');void app.offsetWidth;app.classList.add('fade');
+
+  const total=A.seg?visList().length:9;
+  const idx=A.seg?visList().indexOf(id)+1:ORDER.indexOf(id)+1;
+  document.getElementById('bar').style.width=Math.min(100,idx/total*100)+'%';
+  document.getElementById('step-text').innerText=`ข้อ ${idx} จาก ${total}`;
+  document.getElementById('q-title').innerText=q.title;
+  document.getElementById('q-why').innerText=q.why;
+  document.getElementById('why-box').open=false;
+
+  const area=document.getElementById('answers');
+  const next=document.getElementById('next');
+  area.innerHTML='';next.classList.add('hidden');
+
+  if(q.type==='choice'){
+    q.options.forEach(o=>area.appendChild(choiceBtn(o,q.key,id)));
+
+  } else if(q.type==='demand'){
+    const inp=document.createElement('input');
+    inp.type='number';inp.inputMode='numeric';inp.placeholder='เช่น 3500 (บาท/เดือน)';
+    inp.className='w-full border-2 border-gray-300 rounded-2xl px-4 py-3 text-xl text-center font-bold focus:outline-none focus:border-[#9b2077]';
+    area.appendChild(inp);inp.focus();
+    next.classList.remove('hidden');
+    const sub=()=>{const v=parseFloat(inp.value);if(!v||v<=0){inp.classList.add('border-red-400');inp.focus();return;}A.bill=v;go(nextId(id));};
+    next.onclick=sub;inp.addEventListener('keydown',e=>{if(e.key==='Enter')sub();});
+    
+    const link=document.createElement('button');
+    link.className='w-full text-center text-xs underline pt-2';
+    link.style.color='var(--pea-primary)';
+    link.innerText='ไม่ทราบค่าไฟ? เลือกช่วงโดยประมาณ';
+    link.onclick=()=>{
+      area.innerHTML='';next.classList.add('hidden');
+      q.ranges.forEach(r=>area.appendChild(choiceBtn({t:r[0],v:r[1]},'bill',id)));
+    };
+    area.appendChild(link);
+  }
+}
+function go(id){id?render(id):calculate();}
+
+function nearestPackage(kw){
+  if(kw>500)return Math.round(kw/50)*50;
+  if(kw>50)return Math.round(kw/10)*10;
+  const std=[1.5,2,3,5,8,10,15,20,25,30,40,50];
+  return std.reduce((b,s)=>Math.abs(s-kw)<Math.abs(b-kw)?s:b,std[0]);
+}
+function phaseCap(){
+  if(PHASE_SKIP.includes(A.seg))return{cap:1e9,label:'3 เฟส/แรงสูง (ตามกำลังหม้อแปลง)'};
+  let p=A.phase; if(p==='auto')p=(A.bill>5000)?'3':'1';
+  if(p==='1')return{cap:5,label:'1 เฟส — เพดาน 5 kW'};
+  if(A.seg==='home')return{cap:10,label:'3 เฟส (บ้าน) — เพดาน 10 kW'};
+  return{cap:1e9,label:'3 เฟส เชิงพาณิชย์ (ตามกำลังหม้อแปลง)'};
+}
+
+function calculate(){
+  const Em=A.bill/C.TARIFF;
+  const away=A.daytime<=0.2, wantBackup=A.backup===true, battery=away||wantBackup;
+  const targetFrac=battery?Math.min(0.9,A.daytime+0.4):A.daytime;
+  const servedLoad=Em*targetFrac;
+  const kwDemand=servedLoad/YIELD_MONTH;
+  const A_PK=apk();
+  const usableRoof=A.roof*A.obstacle;
+  const kwRoof=usableRoof/A_PK;
+  const ph=phaseCap();
+  const cands=[
+    {k:kwDemand,why:'ขนาดที่คุ้มกับค่าไฟ'},
+    {k:kwRoof,  why:'พื้นที่รองรับ'},
+    {k:ph.cap,  why:'เพดานระบบไฟ — '+ph.label}
+  ];
+  let bind=cands.reduce((b,c)=>c.k<b.k?c:b,cands[0]);
+  let kw=bind.k; if(kw>0&&kw<1.5)kw=1.5;
+  const kwShow=kw>=100?Math.round(kw):kw.toFixed(1);
+  const pkg=nearestPackage(kw);
+  const type=battery?'ไฮบริด + แบตเตอรี่':'ออนกริด (ลดค่าไฟกลางวัน)';
+  const warn=[];
+
+  if(wantBackup)warn.push(['🔋','#0e9f6e','#ecfdf5','คุณต้องการไฟสำรอง → แนะนำไฮบริด+แบต เพราะระบบออนกริดล้วนจะดับตามการไฟฟ้าเมื่อไฟดับ']);
+  else if(away)warn.push(['🔋','#0e9f6e','#ecfdf5','กลางวันใช้ไฟน้อย → แนะนำเสริมแบตเก็บไฟไว้ใช้ตอนค่ำ/กลางคืน ไม่งั้นไฟส่วนใหญ่จะถูกขายคืนราคาถูก']);
+  else if((A.meter==='tou'||(A.meter==='auto'&&A.bill>8000))&&A.daytime<=0.45)
+    warn.push(['🔋','#2563eb','#eff6ff','ใช้/น่าจะใช้มิเตอร์ TOU + ใช้ไฟช่วงหัวค่ำเยอะ — เสริมแบตจะช่วยย้ายไฟไปใช้ช่วงค่ำ (ราคาแพง) ทำให้คุ้มขึ้น (ตัวเลือกเสริม)']);
+  if(kwRoof<kwDemand-0.2)
+    warn.push(['📐','#b45309','#fffbeb',`ตามค่าไฟ เหมาะกับ ~${kwDemand.toFixed(1)} kWp แต่พื้นที่รับได้สูงสุด ~${kwRoof.toFixed(1)} kWp จึงแนะนำเท่าที่พื้นที่ไหว`]);
+  if(ph.cap<kwDemand-0.2&&ph.cap<kwRoof)
+    warn.push(['⚡','#9333ea','#faf5ff',`ขนาดถูกจำกัดที่ ${ph.label} — ถ้าต้องการมากกว่านี้ ต้องอัปเกรดเป็น 3 เฟส หรือตรวจกำลังหม้อแปลงก่อน`]);
+  if(A.weekend===true)
+    warn.push(['🛑','#dc2626','#fef2f2','ปิดวันหยุด — ต้องติด Zero Export กันไฟย้อนตามกฎ และไฟวันหยุดจะไม่ถูกใช้ (พิจารณาแบต/ลดขนาด/ทำเรื่องขายไฟ)']);
+  
+  const gen=kw*YIELD_MONTH, selfUse=Math.min(gen,servedLoad);
+  const save=Math.round(selfUse*C.TARIFF/100)*100;
+  
+  // ----- [ส่งข้อมูลเข้าระบบหลังบ้าน Firebase] -----
+  if (window.saveToDatabase) {
+      window.saveToDatabase({
+          segment: SEG[A.seg].label,
+          bill: A.bill,
+          roofArea: A.roof,
+          recommended_kW: kwShow,
+          recommended_package: pkg,
+          saving_per_month: save,
+          date: new Date().toLocaleString('th-TH')
+      });
+  }
+  // -------------------------------------------
+
+  showResult({Em,targetFrac,servedLoad,kwDemand,usableRoof,kwRoof,A_PK,ph,kw,kwShow,pkg,type,warn,save,bindWhy:bind.why,battery});
+}
+
+function showResult(r){
+  // เงื่อนไขสกรีนบ้านที่ไม่เหมาะสม
+  if (A.seg === 'home' && (r.kwDemand < 1.5 || r.kwRoof < 1.5)) {
+      document.getElementById('app').innerHTML = `
+          <div class="fade text-center p-6">
+            <div class="text-5xl mb-4">🏠</div>
+            <h2 class="text-xl font-bold mb-2 text-red-600">บ้านของท่านยังไม่เหมาะกับการติดโซลาร์เซลล์</h2>
+            <p class="text-sm text-gray-600 mb-6">
+              เนื่องจาก${r.kwRoof < 1.5 ? 'พื้นที่หลังคาสำหรับติดตั้งมีจำกัด' : 'การใช้ไฟเฉลี่ยน้อยเกินไป'} 
+              ทำให้การติดตั้งอาจไม่คุ้มทุนหรือยังไม่เข้าเกณฑ์แพ็กเกจมาตรฐาน
+            </p>
+            <div class="bg-[#fdf2f8] border border-[#fce7f3] rounded-xl p-4 text-sm text-gray-700 mb-6 shadow-sm">
+               หากท่านต้องการข้อมูลเพิ่มเติม สามารถโทรสอบถามเจ้าหน้าที่ได้ที่<br>
+               <b class="text-xl block mt-2" style="color: var(--pea-primary);">📞 1129 PEA Contact Center</b>
+            </div>
+            <button onclick="location.reload()" class="w-full text-white font-semibold py-3 rounded-xl shadow-md" style="background:var(--pea-primary)">↻ ประเมินใหม่</button>
+          </div>
+      `;
+      return;
+  }
+
+  const warnHtml=r.warn.map(w=>`<div class="rounded-xl p-3 text-[13px] leading-relaxed" style="color:${w[1]};background:${w[2]}"><b>${w[0]}</b> ${w[3]}</div>`).join('');
+  const fracTxt=r.battery?`${r.targetFrac.toFixed(2)} (มีแบต = เผื่อชาร์จใช้ตอนค่ำ ~80–90% ของการใช้ไฟ)`:`${A.daytime} (ไม่มีแบต = เฉพาะที่ใช้กลางวัน)`;
+
+  let pkgHtml = "";
+  let allPkgsHtml = "";
+  
+  if(excelData.length > 0) {
+      let userPhase = '1';
+      if(r.ph.cap >= 10 || A.phase === '3' || (A.phase === 'auto' && A.bill > 5000) || PHASE_SKIP.includes(A.seg)) {
+          userPhase = '3';
+      }
+      
+      let validPkgs = excelData.filter(p => {
+          let kw = parseNum(getVal(p, 'inverter(kw)'));
+          let ph = getVal(p, 'phase').toString();
+          return !isNaN(kw) && ph.includes(userPhase) && kw <= r.kwRoof && kw <= r.ph.cap;
+      });
+      validPkgs.sort((a,b) => parseNum(getVal(a, 'inverter(kw)')) - parseNum(getVal(b, 'inverter(kw)')));
+
+      if (validPkgs.length === 0) {
+          pkgHtml = `
+            <div class="mt-8 mb-4 border-t-2 border-dashed border-gray-200 pt-6">
+               <div class="bg-[#fdf2f8] border border-[#fce7f3] rounded-2xl p-6 text-center shadow-sm">
+                  <div class="text-4xl mb-3">🏠</div>
+                  <h3 class="text-[17px] font-bold text-red-600 mb-2">ที่พักอาศัยของท่านอาจยังไม่เหมาะกับการติดโซลาร์เซลล์</h3>
+                  <p class="text-sm text-gray-600 leading-relaxed">
+                     เนื่องจากขณะนี้ไม่พบแพ็กเกจที่ตรงกับขนาดการใช้ไฟและพื้นที่ของท่าน<br>
+                     ท่านสามารถติดต่อสอบถามข้อมูลเพิ่มเติมกับเจ้าหน้าที่ได้ที่
+                  </p>
+                  <div class="mt-4 font-extrabold text-xl" style="color: var(--pea-primary);">
+                     📞 1129 PEA Contact Center
+                  </div>
+               </div>
+            </div>
+          `;
+      } else {
+          let onGridPkgs = validPkgs.filter(p => { let t = getVal(p, 'type').toUpperCase(); return t === 'SO' || t.includes('ON'); });
+          let batteryPkgs = validPkgs.filter(p => { let t = getVal(p, 'type').toUpperCase(); return t === 'SB' || t === 'SH' || t === 'BB' || t.includes('HYBRID') || t.includes('BAT'); });
+
+          let recPkg = onGridPkgs.length ? (onGridPkgs.find(p => parseNum(getVal(p, 'inverter(kw)')) >= parseFloat(r.kwShow)) || onGridPkgs[onGridPkgs.length-1]) : null;
+          let minPkg = onGridPkgs.length ? ([...onGridPkgs].reverse().find(p => parseNum(getVal(p, 'inverter(kw)')) < parseFloat(r.kwShow)) || onGridPkgs[0]) : null;
+          let batPkg = batteryPkgs.length ? (batteryPkgs.find(p => parseNum(getVal(p, 'inverter(kw)')) >= parseFloat(r.kwShow)) || batteryPkgs[batteryPkgs.length-1]) : null;
+
+          pkgHtml = `
+            <div class="mt-8 mb-4 border-t-2 border-dashed border-gray-200 pt-6">
+               <h3 class="text-xl font-bold text-gray-800 mb-2 text-center">🎯 แพ็กเกจที่เหมาะสมกับคุณ</h3>
+               <div class="space-y-4">
+                  ${minPkg ? renderPkgCard(minPkg, '⚡ ขั้นต่ำที่รองรับได้ (Minimum)', '#6b7280') : ''}
+                  ${recPkg ? renderPkgCard(recPkg, '⭐ แนะนำสำหรับคุณ (Recommended)', '#9b2077') : ''}
+                  ${batPkg ? renderPkgCard(batPkg, '🔋 ออปชันเสริมมีแบตเตอรี่ (Hybrid)', '#76b72a') : ''}
+               </div>
+            </div>
+          `;
+
+          allPkgsHtml = `
+            <button onclick="document.getElementById('all-pkgs-container').classList.toggle('hidden')" class="mt-4 w-full py-2 text-center font-semibold underline text-[14px] transition-colors hover:opacity-80" style="color: var(--pea-primary);">
+               คลิกเพื่อดูแพ็กเกจทั้งหมดที่คุณสามารถติดตั้งได้ ⬇️
+            </button>
+            <div id="all-pkgs-container" class="hidden mt-4 space-y-2 fade p-4 bg-[#fcf9fb] rounded-2xl border border-gray-200">
+               <p class="text-[11px] text-gray-500 mb-3 text-center">รายการแพ็กเกจที่เหมาะสมกับพื้นที่และระบบไฟของคุณ</p>
+               ${validPkgs.map(p => renderSmallPkgCard(p)).join('')}
+            </div>
+          `;
+      }
+  }
+
+  document.getElementById('app').innerHTML=`
+    <div class="fade">
+      <p class="text-xs text-gray-500 mb-1">ผลประเมินเบื้องต้น</p>
+      <h2 class="text-xl font-bold mb-4" style="color: var(--pea-primary);">ขนาดโซลาร์เซลล์ที่คำนวณได้</h2>
+      <div class="rounded-2xl p-5 mb-4 border" style="background: linear-gradient(135deg, #fdf2f8, #fce7f3); border-color: var(--pea-border);">
+        <div class="flex items-end gap-2">
+          <span class="text-5xl font-extrabold" style="color:var(--pea-primary)">${r.kwShow}</span>
+          <span class="text-xl font-bold text-gray-600 mb-1">kWp</span>
+        </div>
+        <p class="text-[13px] text-gray-600 mt-1">≈ ขนาดมาตรฐาน <b>${r.pkg} kW</b> · ตัวจำกัด: ${r.bindWhy}</p>
+        <p class="text-sm font-semibold mt-3" style="color:var(--pea-primary)">รูปแบบที่แนะนำ: ${r.type}</p>
+        <p class="text-[13px] text-gray-600 mt-1">ประหยัดได้ราว <b>${r.save.toLocaleString()} บาท/เดือน</b> (ประมาณการ)</p>
+      </div>
+      
+      <div class="space-y-2 mb-4">${warnHtml}</div>
+
+      ${pkgHtml}
+
+      ${allPkgsHtml}
+
+      <button onclick="location.reload()" class="w-full text-white font-semibold py-3 mt-4 rounded-xl shadow-md" style="background:var(--pea-primary)">↻ ประเมินใหม่</button>
+    </div>`;
+}
+
+render('segment');
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBZ1X__5EuCIIkyxHHw9xcZC0pn55UbLVY",
+    authDomain: "pea-easyd-solar.firebaseapp.com",
+    projectId: "pea-easyd-solar",
+    storageBucket: "pea-easyd-solar.firebasestorage.app",
+    messagingSenderId: "151976675951",
+    appId: "1:151976675951:web:a8483e3357440251c2db9a",
+    measurementId: "G-YP2KHB4GJJ"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.saveToDatabase = async function(resultData) {
+    try {
+      const docRef = await addDoc(collection(db, "evaluations"), {
+        ...resultData,
+        timestamp: serverTimestamp()
+      });
+      console.log("บันทึกข้อมูลเข้า Firebase สำเร็จ! Document ID: ", docRef.id);
+    } catch (e) {
+      console.error("เกิดข้อผิดพลาดในการบันทึก: ", e);
+    }
+  };
+</script>
+</body>
+</html>
