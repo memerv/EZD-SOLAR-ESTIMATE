@@ -1,25 +1,30 @@
 # EZD-SOLAR-ESTIMATE
+A web application project for estimating the solar power system size tailored to specific energy needs and installation space requirements.
 
-โปรเจกต์เว็บแอปพลิเคชันสำหรับการประเมินขนาดโซลาร์เซลล์ที่เหมาะสมกับความต้องการและขนาดพื้นที่ติดตั้ง
+##  Access Link
+**[Click here to estimate your solar system size](https://fantastic-fudge-b0efa7.netlify.app/)**
 
-##  ลิงก์เข้าใช้งานเว็บไซต์
- **[คลิกเพื่อประเมินขนาดโซลาร์เซลล์ที่นี่](https://fantastic-fudge-b0efa7.netlify.app/)**
+##  Project Details
+This system is designed to help users evaluate:
 
----
+The optimal kWp size based on electricity consumption.
 
-## รายละเอียดโปรเจกต์
-ระบบนี้ถูกออกแบบมาเพื่อช่วยให้ผู้ใช้งานสามารถประเมิน:
-- ขนาด kWp ที่เหมาะสมกับการใช้ไฟฟ้า
-- คำแนะนำประเภทระบบ (On-grid / Hybrid)
-- งบประมาณโดยประมาณ
-- ข้อมูลเชิงเทคนิค (จำนวนแผง, ขนาดอินเวอร์เตอร์, และพื้นที่ที่ต้องใช้)
+Recommended system types (On-grid / Hybrid).
 
-## เทคโนโลยีที่ใช้
-- HTML5 / CSS3 / Tailwind CSS
-- JavaScript
-- Firebase (Firestore) สำหรับจัดเก็บข้อมูลการประเมิน
+Estimated budget.
 
-## วิธีการใช้งาน
-1. เข้าใช้งานผ่านลิงก์เว็บไซต์ด้านบน
-2. เลือกกลุ่มผู้ใช้งานและตอบคำถามพื้นฐานตามความเป็นจริง
-3. ระบบจะทำการประเมินขนาดโซลาร์ที่เหมาะสมพร้อมแสดงแพ็กเกจที่เกี่ยวข้อง
+Technical specifications (number of panels, inverter size, and required installation area).
+
+##  Technologies Used
+HTML5 / CSS3 / Tailwind CSS
+
+JavaScript
+
+Firebase (Firestore) for storing estimation data
+
+##  How to Use
+Access the website via the link provided above.
+
+Select your user profile and answer the basic questions accurately.
+
+The system will generate an estimate for the appropriate solar system size and display relevant packages.
